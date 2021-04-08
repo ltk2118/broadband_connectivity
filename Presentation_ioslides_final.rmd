@@ -1,0 +1,144 @@
+---
+title: "Broadband policies and outcomes on connectivity" 
+author: ""
+date: ""
+output: ioslides_presentation
+---
+<style type="text/css">
+
+h1 {
+  text-align: center;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+}
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(ggrepel)
+library(ggthemes)
+library(stargazer)
+library(conflicted)
+conflict_prefer("select", "dplyr")
+conflict_prefer("filter", "dplyr")
+conflict_prefer("lag", "dplyr")
+
+source("Prep_data.R")
+source("Regressions.R")
+
+prep_connections_data()
+prep_policies()
+prep_controls()
+prep_regressions()
+prep_eda()
+
+```
+
+## Research question
+
+- How do __policies__ related to broadband (municipal restrictions and state-level funding) affect __connectivity__? 
+
+- We would like to test this empirically
+
+- Important in the context of COVID-19 and remote working
+
+## Policy background
+- Since the late 1990s, broadband/high speed internet has been deployed almost exclusively by the private sector
+
+- In certain areas, delivery of broadband can be particularly challenging, and coverage has not been even across the United States, with certain areas subject to lower speeds and higher prices
+
+- In some communities, public entities (local governments or public utilities) have stepped in to build broadband networks, either alone or in partnership with private companies
+
+## Controversy 
+
+- __Proponents__ of municipal broadband: communities/municipalities should have the ability to provide this service
+
+- __Opponents__ of municipal broadband: public entities are not equipped and able to efficiently develop, operate and maintain broadband networks, and that funding in this manner is an inefficient allocation of public funds and also creates unfair competition for private developers
+
+## Data (1)
+
+- FCC Form 477 - Internet Access Services 
+- Broadband Now & Pew Broadband Policy Data Explorer
+- 5-year ACS, 2015-2019
+- Census Bureau, BLS (controls)
+
+## Data (2)
+- Panel data from 2015-2019
+- __Connectivity__ score (0-5) @ county-level x year
+- Municipal broadband __restrictiviness__ level (-2-3) @ state-level x year
+- Whether state-level __funding__ policy in place (0,1) @ state-level x year
+
+## Connectivity over time (state) {.smaller .flexbox .vcenter}
+\center
+![](https://raw.githubusercontent.com/ltk2118/broadband_connectivity/main/state_connections.gif)
+
+
+## Connectivity over time (county) {.smaller .flexbox .vcenter}
+\center
+![](https://raw.githubusercontent.com/ltk2118/broadband_connectivity/main/county_connections.gif)
+
+## State level funding {.smaller .flexbox .vcenter}
+![](https://raw.githubusercontent.com/ltk2118/broadband_connectivity/main/state_funds.gif)
+
+## Municipal Restrictions {.smaller .flexbox .vcenter}
+\center
+![](https://raw.githubusercontent.com/ltk2118/broadband_connectivity/main/state_restrictions.gif)
+
+## EDA - Crosstab {.smaller .flexbox .vcenter}
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+table_1
+table_2
+```
+
+## EDA - Scatterplots (1) 
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+plot_1
+```
+
+## EDA - Scatterplots (2)
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+plot_2
+```
+
+## Simple difference regression (1) {.smaller .flexbox .vcenter}
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+stargazer(lm1,lm2,lm3,lm4,lm5,lm6,type="text",keep=c("delta_funds"),
+          keep.stat=c("adj.rsq"),
+          add.lines=list(c("IncomeEduc","No","Yes","Yes","Yes","Yes","Yes"),
+                         c("Demographic","No","No","Yes","Yes","No","No"),
+                          c("Labor force","No","No","No","Yes","Yes","Yes"),
+                           c("Political","No","No","No","No","Yes","No"),
+                            c("Geographic","No","No","No","No","No","Yes")))
+```
+
+## Simple difference regression (2) {.smaller .flexbox .vcenter}
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+stargazer(lm7,lm8,lm9,lm10,lm11,lm12,type="text",keep=c("delta_res"),
+          keep.stat=c("adj.rsq"),
+          add.lines=list(c("IncomeEduc","No","Yes","Yes","Yes","Yes","Yes"),
+                         c("Demographic","No","No","Yes","Yes","No","No"),
+                         c("Labor force","No","No","No","Yes","Yes","Yes"),
+                         c("Political","No","No","No","No","Yes","No"),
+                         c("Geographic","No","No","No","No","No","Yes")))
+```
+
+## Next steps (1) 
+- __Difference in difference__ analysis with, Arkansas x Kentucky, Missouri
+
+- AR large shock: 2011 amendment to the Telecommunications Regulatory Reform Act of 1997; Senate Bill 74 amended the Telecommunications Regulatory Reform Act of 2013
+
+- __Panel regression__ analysis with state, time FE
+
+- __Alternative data source__ for connections: for a random sample of a quarter of all counties, % of households with access to broadband, over time (and split by income level of household)
+
+## Next steps (2)
+- If time permits (it probably won't), we would also like to look at the relationship between broadband access/speed and __labor market outcomes__, particularly during the COVID-19 pandemic in the United States
+
+
