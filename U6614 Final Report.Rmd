@@ -1,0 +1,228 @@
+---
+title: "How do restrictions on municipal broadband affect connectivity outcomes? "
+author: Liam Tay Kearney ltk2118; Pamela Lian pl2647
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: 
+  pdf_document:
+    keep_tex: false
+    fig_caption: true
+    latex_engine: pdflatex
+header-includes:
+  -  \usepackage{hyperref}
+biblio-style: apsr
+geometry: margin=1in
+fontfamily: mathpazo
+fontsize: 11pt
+# spacing: double
+endnote: no
+urlcolor: blue
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(cache=FALSE,
+                      message=FALSE, warning=FALSE, echo=FALSE,
+                      fig.path='figs/',
+                      cache.path = '_cache/',
+                      fig.process = function(x) {
+                      x2 = sub('-\\d+([.][a-z]+)$', '\\1', x)
+                      if (file.rename(x, x2)) x2 else x
+                      })
+```
+
+```{r, echo=FALSE, warnings=FALSE,  message=FALSE, include=FALSE}
+
+library(dplyr)
+library(tidyverse)
+library(stringr)
+library(zoo)
+library(stringr)
+library(tigris)
+library(lubridate)
+library(tigris)
+library(censusapi)
+library(stargazer)
+
+devtools::source_url("https://raw.githubusercontent.com/ltk2118/broadband_connectivity/main/data_prep.R")
+Sys.setenv(CENSUS_KEY="22c3b2e2538dd22d66c03c745f011d4fa1bc5bcf")
+
+#process and store (releve) objects to the global environment 
+prep_maps()
+diff_in_means()
+make_plots()
+
+```
+
+# Introduction
+Broadband/high speed internet has been deployed within the domain of the private sector since the late 1990s. Although high speed internet is increasingly important, access has not been uniform. In rural areas, the delivery of broadband can be particularly challenging due to the high installation costs per capita for internet service providers when faced with low population density and difficult terrain, rendering rural areas less attractive for private investment. As the internet transformed from a curiosity to a necessity on par with utilities for everyday life, some communities, public entities (local governments or public utilities) have stepped in to build broadband networks, either alone or in partnership with private companies. 
+
+## The issue of municipal broadband
+The venturing of local governments (municipalities) into the broadband market has proven to be a controversial (and partisan) issue. Opening the broadband market, which had previously always been the [realm of private telecommunications companies](https://fas.org/sgp/crs/misc/R44080.pdf), to public entities, has landed policymakers in the crosshairs of telecommunications companies as well as other interest groups.
+
+Proponents of municipal broadband argue that municipalities should have the ability to provide this service if the circumstances of the community warrant this form of intervention, and that the disparities in broadband development (and access) prove that market forces alone are not always enough to ensure that everyone is connected with affordable, high-quality internet access. 
+
+Opponents of municipal broadband argue that public entities are not equipped and able to efficiently develop, operate and maintain broadband networks, and that funding in this manner is an inefficient allocation of public funds. This view is also accompanied by the assertion that municipal broadband networks create unfair competition for private developers, and that public involvement threatens free and fair competition. This is thought by some to negatively impact private sector incentives for broadband infrastructure investment and development - hurting access in the long run. 
+
+More broadly, the drive to connect the un- or under-connected, different and at times opposing policies have been championed as effective solutions. This project aims to further examine the effects of one of these policies.
+
+## Literature review 
+[Gallardo and Whitaker (2020)](https://www.sciencedirect.com/science/article/pii/S0308596120301178") employ a system GMM estimator to panel data from 2013-2018 and find municipal broadband restrictions decrease general broadband availability by 3 percentage points. We seek to put their findings to the test using 2019 data and a richer set of policy variables.
+[Renkow (2016)](https://www.cambridge.org/core/journals/agricultural-and-resource-economics-review/article/abs/residential-broadband-availability-evidence-from-kentucky-and-north-carolina/C05236738F6DBEABF98C95B54E2FBAF7) finds that urbanization rates, income and education are key variables affecting broadband availability - informing our choice of controls in subsequent analysis.
+
+# Data and descriptive statistics
+We use a variety of data sources in order to estimate the relationship between municipal broadband restrictions (independent variable) and connectivity outcomes (dependent variable).
+
+## Dependent variable - connectivity 
+We utilize two different datasets on connectivity outcomes. 
+
+(1) The Federal Communications Commission (FCC) [Form 477](https://www.fcc.gov/form-477-county-data-internet-access-services) collects data on tract-level internet access services connections twice per year. This data is a score representing the number of connections per 1000 households in a given tract. Unfortunately, the data are binned into five discrete categories (shown below) rather than denoting a continuous measure of connectivity rates. However, the advantage of this dataset is its completeness, representing a full sample of all census tracts in the United States. We aggregate this tract-level data to the county-level, giving observations from 2009-2019 at the county-year level, consistent with other variables used in subsequent analysis. Mapping the FCC data and examining _Table 2_ clearly shows the increase in connectivity over the ten-year period.
+
+```{r}
+pcat_dictionary %>% knitr::kable(align = "c",caption="FCC Score, coding")
+```
+
+
+```{r, out.width = "90%",fig.align = 'center'}
+fcc_pcat_map 
+```
+
+
+```{r, results='asis'}
+summary_stats_fcc()
+```
+
+(2) Because of the discrete nature of the FCC Form 477 data, we also utilize internet access data from the American Community Survey (ACS) 1-year estimates: "[Table B28008](https://www.socialexplorer.com/data/ACS2015/metadata/?ds=ACS15&table=B28002): Presence of a Computer and Type of Internet Subscription in Household". This data can be used to calculate the proportion of households in a given county-year that possess a broadband connection. However, this sample is limited to estimates for geographic areas with populations of 65,000 or more and is less reliable than the full county sample [ACS 5-year estimates](https://www.census.gov/programs-surveys/acs/guidance/estimates.html) (for which internet connectivity data are unfortunately not available prior to 2017). It will be useful to repeat this analysis when ACS 5-year connectivity data becomes available over a longer time horizon.
+
+## Independent variables: municipal broadband restriction policies
+For the policy variables, we distinguish between two types of state-level restrictions and prepare two panels from 2013-2019. The unit of observation in both cases is state-year. We categorize states with any municipal broadband restrictions in a given year (such as any policy that place limitations on funding, referendum requirements, additional tax burdens or proposal-stage barriers) as “any”. Additionally, We categorize states with explicit bans, or more than two distinct types of barriers as "severe". 
+
+This is because there are actually relatively few states (like Arkansas) with simple bans on municipal broadband. Some states undertake a variety of barriers to render it extremely difficult for public entities to build out broadband infrastructure. We hypothesize that having layered or explicit restrictions may have a greater impact vis-a-vis more moderate limitations. For both panels, we code the presence of any/severe restrictions as 1, and absence as 0. Note that "any" restrictions includes all "severe" restrictions.
+
+To determine the proper encoding we use Pew Charitable Trusts’ [State Broadband Policy Explorer](https://www.pewtrusts.org/en/research-and-analysis/data-visualizations/2019/state-broadband-policy-explorer) municipal broadband filter. However, the policies tagged under Pew's “Municipal Broadband” topic simply represent known legislation with a link to municipal broadband and do not distinguish between supportive and restrictive policies. For example, the entry for Alabama’s Code 11-50B-1 legislation is a pro-municipal broadband policy deliberately allowing public providers to construct broadband infrastructure, whereas the Arkansas Code 23-17-409(b) prohibits local governments from building broadband infrastructure. Both policies are under the same category according to Pew. 
+
+To mitigate this issue we cross-reference the Pew policies with data from [BroadbandNow](https://broadbandnow.com/report/municipal-broadband-roadblocks/) and state legislation records. BroadbandNow is a consumer-focused broadband data aggregator, which provides more information on both the state policies referenced in the Pew as well as new developments like repeals, not included in Pew's dataset. For example, Pew notes the Arkansas municipal broadband ban but fails to note the 2019 repeal, which BroadbandNow does disclose and can be verified through online records. All noted policies are cross-checked with the actual legislative record online for accuracy.
+
+```{r, out.width = "80%",fig.align = 'center'}
+any_restrictions_map
+```
+
+```{r, out.width = "80%",fig.align = 'center'}
+severe_restrictions_map
+```
+
+\newpage
+
+# Static and time-varying controls
+We gather panel data on individual county characteristics that vary over time (and are suspected of having an impact on broadband connectivity) from the full-sample ACS 5-year estimates. To do this, we build two useful helper functions to interact with the Census API. 
+
+(1) *pull_acs_cty* takes year(s), state(s), census variable codes, and the survey name (e.g. "acs5" or "acs1") and returns a long-form data frame of county-level time series data 
+
+(2) *pull_all_data* does the same as *pull_acs_cty* but uses a pre-defined list of 65 variables on  county-level income, age, race, sex, ethnicity, education, poverty and labor market features. It also merges time series data on state legislative and government control by party from the [National Conference of State Legislatures](https://www.ncsl.org/research/about-state-legislatures/legislator-data.aspx), and static urbanization data from the 2010 Decennial Census. 
+
+All census variables represent proportions of a county's total population falling into discrete categories (e.g. proportion white, proportion with some college education, proportion unemployed) for a given year. State legislature are binary categorical representing Republican, Democrat or Divided control of a state in a given year. 
+
+We use *pull_all_data* to build a county-year panel of controls matching the time period of the policy data, i.e. 2013-2019. This function is made available for public use from [Liam's Github](https://raw.githubusercontent.com/ltk2118/broadband_connectivity/main/census_pulls.R).
+
+# Estimation and Results
+
+## Difference in Differences
+
+Our empirical strategy is divided into two parts. First, we exploit an exogenous policy variation in Arkansas to estimate a Difference in Difference (DiD) model. Second, we employ panel regression techniques with fixed effects.
+
+For the DiD analysis we utilize a 2011 policy variation in the state of Arkansas, which passed a [Bill](https://www.arkleg.state.ar.us/Acts/Document?type=pdf&act=1050&ddBienniumSession=2011%2F2011R&fbclid=IwAR0uJaqU3UPwZKZF62UjZNPTuweX701snFb0KAxuo3vMybohrF8lADFoDN4) in April 2011 banning government entities from providing broadband and wireless telecommunication services. Meanwhile, its regional Southern neighboring state of Kentucky has had no restrictions on municipal broadband. To the extent that Arkansas and Kentucky would have followed the same connectivity trends in the absence of the Arkansas bill, this shock sets the stage for a natural experiment on the impact of municipal broadband bans. 
+
+The time series graph below show the trends in connectivity over time in Arkansas and Kentucky, with Oklahoma included for reference (another state with no restrictions). The bar plot shows some visual evidence that Kentucky's connectivity growth did outpace that of Arkansas over during over the period in question.
+
+```{r, out.width = "75%",fig.align = 'center'}
+DiD_timeseries
+```
+
+```{r, out.width = "75%",fig.align = 'center'}
+DiD_bar
+```
+
+To assess whether the parallel trends assumption holds, we use a difference in means two-sample t-test on census data for Arkansas and Kentucky, conveniently pulled from our helper functions. Since the census data is at the county-year level, we aggregate to the state-year level by taking means weighted by county population.
+
+```{r}
+t_2010_output %>% knitr::kable(digits=2, align="c",caption="Difference in Means")
+```
+
+Of all the states we compared, Kentucky was the most similar to Arkansas on the ACS 5 metrics. Taking sub samples (e.g. counties with income below a certain threshold) did not appreciably improve similarity, while reducing the generalizability of the analysis.Thus, we decided to proceed using the full sample of counties in each state.
+
+Though the parallel trends assumption required for the DiD to be interpreted causally may be somewhat difficult to justify, it is somewhat reassuring that the states are comparable on metrics that should, in theory, most influence broadband uptake. These metrics include proportion of the population in younger age brackets, urban/rural demographic composition, average household size, and labor market characteristics. 
+
+To run the DiD regression we define Arkansas as the treatment state and Kentucky as the control, with reference periods before (2010) and after (2012-2014) the ban came into effect. We hypothesize that the effects of the policy would not have been reflected in connectivity data until at least 2012, so define the post-treatment period as the average of 2012-2014 connectivity outcomes. In the final specification we include additional county-level covariates. The PRF for the DiD regression is shown below, where $\beta_3$ is the DiD estimate, and $\textbf{X}_{it}$ are county-level covariates (added in some specifications only). $\text{Connectivity}_{it}$ represents the mean county FCC score as defined previously.
+
+$$\text{Connectivity}_{it} = \beta_0 + \beta_1\text{Restrict}_i + \beta_2\text{Post-2011}_t + \beta_3\text{Restrict}_i*\text{Post-2011}_t+\textbf{X}_{it}+u_{it}$$
+
+The regression output is shown below.
+
+```{r, echo=FALSE, warning=FALSE,  message=FALSE, results='asis'}
+prep_DiD(2012:2014)
+```
+
+The addition of the county-level covariates does not help with identification but helps reduce the standard error of the estimate. The DiD estimate of specification (3) (with population weights and full income, age, education, demographic and urbanization controls) is statistically significant and indicates that the restrictions *did* reduce connectivity. The interpretation of the coefficient is difficult since the FCC scores are discretized, but the magnitude of 0.16 is relatively large considering the scores range from 0-5. We should, however, be hesitant to interpret the result causally due to possible violation of parallel trends. Moreover, re-running the analysis with the post-treatment period defined as 2012-2017 and 2013-2018, gives insignificant DiD estimates (see appendix). While we would have liked to repeat the DiD with the continuous ACS 1 connectivity data, this data is unfortunately not available prior to 2013.
+
+## Panel Regression Analysis
+Because of the difficulty in interpreting the DiD estimates causally, we extend the analysis to a panel regression, utilizing our policy datasets and ACS 1 connectivity data (817 counties) with state and time fixed effects. We are also able to deploy our flexible census api functions to pull detailed time series data on variables which fluctuate on both the state and time dimensions, and include these as controls. This will help bring us closer to ascribing a causal inference interpretation to our estimates. The PRF for the panel regressions are shown below. In the first set of estimates, $\text{Restrict}_{it}$ refers to any restrictions; in the second set of estimates, it refers to severe restrictions only. $\phi_i$ denotes state fixed effects and $\theta_t$ year fixed effects. $\textbf{X}_{it}$ is a matrix of covariates which vary along both state and time dimensions (added in some specifications only). $\text{Connectivity}_{it}$ represents the proportion of households with a broadband connection, as per the ACS 1-year estimates. Standard errors are clustered at the state level to allow for correlation within states. All specifications are weighted based on total county population.
+
+
+$$\text{Connectivity}_{it} = \beta_0 + \beta_1 \text{Restrict}_{it} + \phi_i + \theta_t +  \textbf{X}_{it} + u_{it}$$
+
+
+```{r, echo=FALSE, warning=FALSE,  message=FALSE, results='asis'}
+panel_regs_any()
+panel_any_out()
+```
+Whether or not the state has any restrictions in given year explains only 1.1% of the variation in connectivity. Once we account for state fixed effects the coefficient estimates on the restriction variable become insignificant. Taken together, the fixed effects and covariates explain over 90% of the variation in connection outcomes, but we find no evidence that municipal restrictions have any impact.
+
+
+```{r, echo=FALSE, warning=FALSE,  message=FALSE, results='asis'}
+panel_regs_severe()
+panel_severe_out()
+```
+
+In a similar vein, we find no evidence that severe municipal restrictions have an impact on the proportion of households with a broadband connection. In the bivariate specification, severe restrictions only explain 0.2% of variation in connectivity. The magnitude of the estimated coefficients is also very low. Accounting for state and year fixed effects raises the adjusted $R^2$ to almost 90% - most variation in connectivity can be attributed to factors which vary statically across states or uniformly over time. 
+
+\newpage
+
+# Summary and Conclusion
+
+Our analysis yields mixed results and is limited by data availability, and the challenge of coding complex legislation into a binary categorical variable. 
+
+A difference in difference approach was applied using a 2011 bill passed in Arkansas explicitly banning municipal broadband. To the extent that we believe in the parallel trends assumption, the DiD provides some evidence that municipal restrictions may negatively affect connectivity outcomes, at least in the short-term. The effect became insignificant when the post-treatment period was defined over a longer horizon. 
+
+On the other hand, panel regression estimates using richer connectivity data (albeit a smaller sample of counties) with county and year fixed effects did not provide any evidence that municipal restrictions have an impact on connectivity. On the contrary - policy variation explains almost none of the variation in observed connectivity outcomes. Surprisingly, even "severe" restrictions had no detectable effect in our panel specifications.
+
+challenges in quantitatively pinpointing the effects of municipal broadband restrictions on connectivity, may also be part of why it continues to be a contentious, debated issue. A direction for future research may be to examine the policies at a more micro level, paying more attention to the idiosyncrasies of individual pieces of legislation and their localized effects.
+
+\newpage
+
+# References
+### Cooper, Tyler. [Municipal Broadband Is Restricted In 18 States Across the U.S. In 2021](https://broadbandnow.com/report/municipal-broadband-roadblocks/). BroadbandNow Research. 2021. 
+
+
+### [House Bill 2033 to amend the Telecommunications Regulatory Reform Act of 1997](https://www.arkleg.state.ar.us/Acts/Document?type=pdf&act=1050&ddBienniumSession=2011%2F2011R&fbclid=IwAR0uJaqU3UPwZKZF62UjZNPTuweX701snFb0KAxuo3vMybohrF8lADFoDN4). State of Arkansas 88th General Assembly, Regular Session, 2011. 
+
+### Kruger, G. Lennard & Gilroy, A. Angele. [Municipal Broadband: Background and Policy Debate](https://fas.org/sgp/crs/misc/R44080.pdf), Congressional Research Service. 2016.
+
+
+### Landgraf, Steven. [Entry threats from municipal broadband Internet and impacts on private provider quality](https://doi.org/10.1016/j.infoecopol.2020.100878). Information Economics and Policy, Volume 52. 2020. 
+
+### Whitacre, Brian & Gallardo, Roberto. [State broadband policy: Impacts on availability](https://doi.org/10.1016/j.telpol.2020.102025).Telecommunications Policy, Volume 44, Issue 9. 2020.
+
+\newpage
+
+# Appendices
+
+## Summary statistics for ACS 5-year census data (controls)
+```{r, results='asis'}
+summary_stats_acs5()
+```
+## DiD estimates for different post-treatment period definitions
+
+```{r, results='asis'}
+prep_DiD(2012:2017)
+prep_DiD(2013:2018)
+```
+
+
