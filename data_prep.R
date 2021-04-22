@@ -3,7 +3,6 @@
 ### BROADBAND POLICIES x CONNECTIVITY FINAL PROJECT
 ### Author: Liam Tay Kearney
 ### Date: April 2020
-### Data analysis file: census_broadband.R
 
 ##(0)==========================SETUP============================#
 
@@ -880,7 +879,7 @@ prep_DiD <- function(post){
             dep.var.labels.include = FALSE,
             dep.var.caption = "Mean FCC Score",
             keep = c("treat","after"),
-            covariate.labels = c("Arkansas", "Post","Arkansas x Post"),
+            covariate.labels = c("Restrict", "Post","Restrict x Post"),
             title = paste("Difference in Difference Estimates, Post =",
                           paste(as.character(post)[1],as.character(post)[length(as.character(post))],sep="-")),
             digits=2,
@@ -1034,7 +1033,7 @@ panel_any_out <- function(){
             no.space = TRUE,
             column.sep.width = "1pt",
             keep=c("any_restrict","Constant"),
-            title="Panel regressions: severe restrictions vs connectivity outcomes")
+            title="Panel regressions: any restrictions vs connectivity outcomes")
 }
 
 
@@ -1133,7 +1132,7 @@ panel_regs_severe <- function(){
               cluster_ses(panel_1g,"state"),
               cluster_ses(panel_1h,"state"))
   
-  panelsSEV_1a_to_1i <<- list(panel_1a,
+  panelsSEV_1a_to_1h <<- list(panel_1a,
                           panel_1b,
                           panel_1c,
                           panel_1d,
@@ -1144,7 +1143,7 @@ panel_regs_severe <- function(){
 }
 #function call direct to stargazer text output
 panel_severe_out <- function(){
-  stargazer(panelsSEV_1a_to_1i,
+  stargazer(panelsSEV_1a_to_1h,
             dep.var.labels.include = FALSE,
             dep.var.caption = "Proportion of Households with a Broadband Connection",
             keep.stat = c("adj.rsq","n","f"),
