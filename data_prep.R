@@ -42,7 +42,7 @@ prep_connections_data <- function(){
     year = as.character(i)
     
     #pull tract data from appropriate csv and collapse to county
-    tract_data <- read_csv(paste0(root,"tract_data/tract",year,".csv")) %>% 
+    tract_data <- read_csv(paste0(root,"data/tract_data/tract",year,".csv")) %>% 
       mutate(fips=as.numeric(str_sub(tractcode,end=-7))) %>%
       select(fips,pcat_all) %>% 
       group_by(fips) %>% 
@@ -77,7 +77,7 @@ prep_connections_data <- function(){
     year = as.character(i)
     
     #pull tract data from appropriate csv and collapse to county
-    tract_data <- read_csv(paste0(root,"tract_data/tract",year,".csv")) %>% 
+    tract_data <- read_csv(paste0(root,"data/tract_data/tract",year,".csv")) %>% 
       mutate(fips=as.numeric(str_sub(tractcode,end=-7))) %>%
       select(fips,pcat_all) %>% 
       group_by(fips) %>% 
@@ -292,7 +292,7 @@ pull_all_data <- function(years,states,api="acs5") {
                   select(-starts_with("B1"))
   
   #URBANIZATION (2010 data, not time-varying)
-  cens_urban <- read_csv(paste0(root,"county_data/urban_popdens_2010.csv")) %>% 
+  cens_urban <- read_csv(paste0(root,"data/county_data/urban_popdens_2010.csv")) %>% 
                     dplyr::filter(state_code %in% states) %>% 
                     mutate(geog_metro=ifelse(rucc<=3,1,0),
                            geog_urb_non_metro =ifelse(rucc>=4 & rucc<=7,1,0),
@@ -302,7 +302,7 @@ pull_all_data <- function(years,states,api="acs5") {
   #STATE LEGISLATURE AND GOVERNOR (NCSL)
   #create dummies for R, D and divided control of legislature and state
   #for governor, it is either R or D, so only include a dummy for R governor
-  state_leg <- read_csv(paste0(root,"state_government_2010_2019.csv")) %>% 
+  state_leg <- read_csv(paste0(root,"data/state_government_2010_2019.csv")) %>% 
     mutate(pol_leg_R = ifelse(legis_control=="R",1,0),
            pol_leg_D = ifelse(legis_control=="D",1,0),
            polF_leg_Divided = ifelse(legis_control=="V",1,0),
@@ -524,11 +524,11 @@ pull_acs_internet <- function(years,states,api="acs1") {
 #severe indicates whether the state had 2+ laws restricting muni broadband 
 prep_policies <- function(){
   
-    crosswalks <- read_csv(paste0(root,"county_data/fips_states.csv"))
+    crosswalks <- read_csv(paste0(root,"data/county_data/fips_states.csv"))
   
-    any_wide <<- read_csv(paste0(root,"policies/any_restrictions.csv"))
+    any_wide <<- read_csv(paste0(root,"data/policy_data/any_restrictions.csv"))
       
-    severe_wide <<- read_csv(paste0(root,"policies/severe_restrictions.csv"))
+    severe_wide <<- read_csv(paste0(root,"data/policy_data/severe_restrictions.csv"))
     
     #for long form data, add county fips codes to facilitate joining later
     any_long <<- any_wide %>% gather(year,any_restrict,`2013`:`2019`) %>% 
@@ -584,7 +584,7 @@ prep_maps <- function(){
   library(dplyr)
   
   #load shape files and functions 
-  load(url("https://github.com/ltk2118/broadband_connectivity/blob/main/shape_files.RData?raw=true"))
+  load(url("https://github.com/ltk2118/broadband_connectivity/blob/main/data/shape_files.RData?raw=true"))
   
   #if not already called, please call the following:
   #prep_connections_data() 
@@ -664,7 +664,7 @@ prep_maps <- function(){
 }
 
 #Coding for the FCC Form 477 Connectivity Score, to present as table
-pcat_dictionary <<- read_csv(paste0(root,"county_data/pcat_dictionary.csv")) %>%
+pcat_dictionary <<- read_csv(paste0(root,"data/county_data/pcat_dictionary.csv")) %>%
   rename(Score = `Code "pcat"`)
 
 #Summary statistics, selected variables, 2013-2019, 

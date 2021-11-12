@@ -186,7 +186,7 @@ pull_all_data <- function(years,states,api="acs5") {
                   select(-starts_with("B1"))
   
   #URBANIZATION (2010 data, not time-varying)
-  cens_urban <- read_csv(paste0(root,"county_data/urban_popdens_2010.csv")) %>% 
+  cens_urban <- read_csv(paste0(root,"data/county_data/urban_popdens_2010.csv")) %>% 
                     dplyr::filter(state_code %in% states) %>% 
                     mutate(geog_metro=ifelse(rucc<=3,1,0),
                            geog_urb_non_metro =ifelse(rucc>=4 & rucc<=7,1,0),
